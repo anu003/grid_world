@@ -307,12 +307,18 @@ public class GridMDP {
 		try {
 			FileWriter fileWriter = new FileWriter(file);
 
-			// Write the first two lines, specifying width and height.
-			fileWriter.write(Integer.toString(n) + "\n");
+			// Write the first line ("header") for the raw MDP file: <n, m, k, s0, h, g>.
+			fileWriter.write(Integer.toString(n) + "," + Integer.toString(m) + ",1,0,0,0.9\n");
 
 			// Save the rewards.
 			for (int s = 0; s < n; s++) {
-				fileWriter.write(Double.toString(R[s]) + "\n");
+				for (int a = 0; a < m; a++) {
+					fileWriter.write(Double.toString(R[s]));
+					if (a != m - 1) {
+						fileWriter.write(",");
+					}
+				}
+				fileWriter.write("\n");
 			}
 
 			// Save the four actions as matrix blocks.
