@@ -48,18 +48,40 @@ import javax.swing.JSlider;
 
 public class GridWorld implements ActionListener, ChangeListener, KeyListener {
 
+	/** The main frame (window). */
 	private JFrame fraMain;
+	
+	/** The panel for rendering the grid world. */
 	private GridPanel pnlGrid;
 
+	/** The spinner for changing the width of the grid world. */
 	private JSpinner sprWidth;
+	
+	/** The spinner for changing the height of the grid world. */
 	private JSpinner sprHeight;
 
+	/** The button for saving a grid world file. */
 	private JButton btnSaveGridWorld;
+	
+	/** The button for loading a grid world file. */
 	private JButton btnLoadGridWorld;
-	private JButton btnExportRawMdp;
-	private JButton btnImportMdpPolicy;
+	
+	/** The button for exporting a raw MDP file. */
+	private JButton btnExportRawMDP;
+	
+	/** The button for importing an MDP policy file. */
+	private JButton btnImportMDPPolicy;
+	
+	/** The button for exporting a raw POMDP file. */
+	private JButton btnExportRawPOMDP;
+	
+	/** The button for importing a POMDP policy file. */
+	private JButton btnImportPOMDPPolicy;
 
+	/** The button which plays or pauses robot execution, given the initial starting point. */
 	private JButton btnPlayPause;
+	
+	/** A slider which controls the speed of the robot as it moves around. For visualization only. */
 	private JSlider sldSpeed;
 
 	/**
@@ -98,7 +120,7 @@ public class GridWorld implements ActionListener, ChangeListener, KeyListener {
 	private void initialize() {
 		fraMain = new JFrame();
 		fraMain.setTitle("Grid World");
-		fraMain.setBounds(100, 100, 600, 380);
+		fraMain.setBounds(100, 100, 800, 600);
 		fraMain.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
 		JSplitPane splMain = new JSplitPane();
@@ -130,13 +152,21 @@ public class GridWorld implements ActionListener, ChangeListener, KeyListener {
 		btnLoadGridWorld.setToolTipText("Load a grid world from a file.");
 		btnLoadGridWorld.addActionListener(this);
 
-		btnExportRawMdp = new JButton("Export Raw MDP");
-		btnExportRawMdp.setToolTipText("Export the underlying MDP as a raw text file, with state transitions and rewards, for use by a planner.");
-		btnExportRawMdp.addActionListener(this);
+		btnExportRawMDP = new JButton("Export Raw MDP");
+		btnExportRawMDP.setToolTipText("Export the underlying MDP as a raw text file, with state transitions and rewards, for use by a planner.");
+		btnExportRawMDP.addActionListener(this);
 
-		btnImportMdpPolicy = new JButton("Import MDP Policy");
-		btnImportMdpPolicy.setToolTipText("Import a policy from a file which was solved using an exported raw MDP file.");
-		btnImportMdpPolicy.addActionListener(this);
+		btnImportMDPPolicy = new JButton("Import MDP Policy");
+		btnImportMDPPolicy.setToolTipText("Import a policy from a file which was solved using an exported raw MDP file.");
+		btnImportMDPPolicy.addActionListener(this);
+
+		btnExportRawPOMDP = new JButton("Export Raw POMDP");
+		btnExportRawPOMDP.setToolTipText("Export the underlying POMDP as a raw text file, with state transitions, observation transitions, and rewards, for use by a planner.");
+		btnExportRawPOMDP.addActionListener(this);
+
+		btnImportPOMDPPolicy = new JButton("Import POMDP Policy");
+		btnImportPOMDPPolicy.setToolTipText("Import a policy from a file which was solved using an exported raw POMDP file.");
+		btnImportPOMDPPolicy.addActionListener(this);
 
 		btnPlayPause = new JButton("Play");
 		btnPlayPause.setToolTipText("Play or pause the robot animation.");
@@ -146,6 +176,7 @@ public class GridWorld implements ActionListener, ChangeListener, KeyListener {
 		sldSpeed.setToolTipText("Adjust the speed of the robot.");
 		sldSpeed.setValue(4);
 		sldSpeed.setMaximum(8);
+		sldSpeed.setSnapToTicks(true);
 		sldSpeed.addChangeListener(this);
 
 		JLabel lblSpeed = new JLabel("Speed:");
@@ -166,9 +197,13 @@ public class GridWorld implements ActionListener, ChangeListener, KeyListener {
 								.addComponent(sprHeight, GroupLayout.DEFAULT_SIZE, 90, Short.MAX_VALUE)))
 						.addComponent(btnSaveGridWorld, GroupLayout.DEFAULT_SIZE, 160, Short.MAX_VALUE)
 						.addComponent(btnLoadGridWorld, GroupLayout.DEFAULT_SIZE, 154, Short.MAX_VALUE)
-						.addComponent(btnExportRawMdp, GroupLayout.DEFAULT_SIZE, 160, Short.MAX_VALUE)
+						.addComponent(btnExportRawMDP, GroupLayout.DEFAULT_SIZE, 160, Short.MAX_VALUE)
 						.addGroup(Alignment.TRAILING, gl_pnlControl.createSequentialGroup()
-							.addComponent(btnImportMdpPolicy, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+							.addComponent(btnImportMDPPolicy, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+							.addGap(1))
+						.addComponent(btnExportRawPOMDP, GroupLayout.DEFAULT_SIZE, 160, Short.MAX_VALUE)
+						.addGroup(Alignment.TRAILING, gl_pnlControl.createSequentialGroup()
+							.addComponent(btnImportPOMDPPolicy, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
 							.addGap(1))
 						.addGroup(Alignment.TRAILING, gl_pnlControl.createSequentialGroup()
 							.addGap(1)
@@ -196,10 +231,14 @@ public class GridWorld implements ActionListener, ChangeListener, KeyListener {
 					.addPreferredGap(ComponentPlacement.RELATED)
 					.addComponent(btnLoadGridWorld)
 					.addPreferredGap(ComponentPlacement.RELATED)
-					.addComponent(btnExportRawMdp)
+					.addComponent(btnExportRawMDP)
 					.addPreferredGap(ComponentPlacement.RELATED)
-					.addComponent(btnImportMdpPolicy)
-					.addPreferredGap(ComponentPlacement.RELATED, 58, Short.MAX_VALUE)
+					.addComponent(btnImportMDPPolicy)
+					.addPreferredGap(ComponentPlacement.RELATED)
+					.addComponent(btnExportRawPOMDP)
+					.addPreferredGap(ComponentPlacement.RELATED)
+					.addComponent(btnImportPOMDPPolicy)
+					.addPreferredGap(ComponentPlacement.RELATED)
 					.addComponent(btnPlayPause)
 					.addPreferredGap(ComponentPlacement.RELATED)
 					.addGroup(gl_pnlControl.createParallelGroup(Alignment.TRAILING)
@@ -244,14 +283,23 @@ public class GridWorld implements ActionListener, ChangeListener, KeyListener {
 					locked = false;
 				}
 			}
-		} else if (e.getSource() == btnExportRawMdp) {
-			GridMDP mdp = new GridMDP();
+		} else if (e.getSource() == btnExportRawMDP) {
+			GridMarkov mdp = new GridMarkov();
 			mdp.create(pnlGrid.getGrid(), pnlGrid.getGridWidth(), pnlGrid.getGridHeight());
 			final JFileChooser fc = new JFileChooser();
 			if (fc.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
 				mdp.saveMDP(fc.getSelectedFile());
 			}
-		} else if (e.getSource() == btnImportMdpPolicy) {
+		} else if (e.getSource() == btnImportMDPPolicy) {
+
+		} else if (e.getSource() == btnExportRawPOMDP) {
+			GridMarkov pomdp = new GridMarkov();
+			pomdp.create(pnlGrid.getGrid(), pnlGrid.getGridWidth(), pnlGrid.getGridHeight());
+			final JFileChooser fc = new JFileChooser();
+			if (fc.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
+				pomdp.savePOMDP(fc.getSelectedFile());
+			}
+		} else if (e.getSource() == btnImportPOMDPPolicy) {
 
 		} else if (e.getSource() == btnPlayPause) {
 			if (btnPlayPause.getText().equals("Play")) {

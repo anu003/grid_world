@@ -42,81 +42,65 @@ import javax.swing.Timer;
 
 public class GridPanel extends JPanel implements MouseListener, ComponentListener, ActionListener {
 
-	/**
-	 * Auto-generated serial ID.
-	 */
+	/** Auto-generated serial ID. */
 	private static final long serialVersionUID = 3728396685715564240L;
 
-	/**
-	 * The width of the grid world.
-	 */
+	/** The width of the grid world. */
 	private int width;
 
-	/**
-	 * The height of the grid world.
-	 */
+	/** The height of the grid world. */
 	private int height;
 
-	/**
-	 * The step of the x-axis.
-	 */
+	/** The step of the x-axis. */
 	private int stepX;
 
-	/**
-	 * The step of the y-axis.
-	 */
+	/** The step of the y-axis. */
 	private int stepY;
 
-	/**
-	 * The grid world.
-	 */
+	/** The grid world. */
 	private int grid[][];
 
-	/**
-	 * The policy within the grid world.
-	 */
+	/** The policy within the grid world. */
 	private int policy[][];
 
-	/**
-	 * The robot timer for moving around.
-	 */
+	/** The robot timer for moving around. */
 	private Timer tmrRobot;
 
-	/**
-	 * The current x location of the robot (in grid coordinates).
-	 */
+	/** The current x location of the robot (in grid coordinates). */
 	private int robotX;
 
-	/**
-	 * The current y location of the robot (in grid coordinates).
-	 */
+	/** The current y location of the robot (in grid coordinates). */
 	private int robotY;
 
-	/**
-	 * The various types of cells for the grid.
-	 */
+	/** The various types of cells for the grid. */
 	public static class GridCellType {
 		public final static int EMPTY = 0;
 		public final static int OBSTACLE = 1;
 		public final static int SUCCESS = 2;
 		public final static int FAILURE = 3;
 		public final static int DEAD_END = 4;
-		public final static int NUM_CELL_TYPES = 5;
+		public final static int LIGHT = 5;
+		public final static int NUM_CELL_TYPES = 6;
 
 		public final static Color colors[] = {
-			Color.white, Color.gray, Color.green, Color.red, Color.black
+			Color.white, Color.gray, Color.green, Color.red, Color.black, Color.yellow
 		};
 	}
 
-	/**
-	 * The various types of actions to make at each state in the grid.
-	 */
+	/** The various types of actions to make at each state in the grid. */
 	public static class Action {
 		public final static int EAST = 0;
 		public final static int NORTH = 1;
 		public final static int WEST = 2;
 		public final static int SOUTH = 3;
 		public final static int NUM_ACTIONS = 4;
+	}
+
+	/** The various types of observations that can be made. */
+	public static class Observation {
+		public final static int IN_THE_LIGHT = 0;
+		public final static int IN_THE_DARK = 1;
+		public final static int NUM_OBSERVATIONS = 2;
 	}
 
 	/**
@@ -366,10 +350,12 @@ public class GridPanel extends JPanel implements MouseListener, ComponentListene
 			int i = (int)(e.getX() / this.stepX);
 			int j = (int)(e.getY() / this.stepY);
 
-			grid[i][j]++;
-			if (grid[i][j] >= GridCellType.NUM_CELL_TYPES) {
-				grid[i][j] = 0;
-			}
+			try {
+				grid[i][j]++;
+				if (grid[i][j] >= GridCellType.NUM_CELL_TYPES) {
+					grid[i][j] = 0;
+				}
+			} catch (ArrayIndexOutOfBoundsException err) { }
 
 			repaint();
 		}
