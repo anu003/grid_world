@@ -31,16 +31,18 @@ import java.awt.event.ComponentEvent;
 import java.awt.event.ComponentListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 
 import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 
 
-public class GridPanel extends JPanel implements MouseListener, ComponentListener, ActionListener {
+public class GridPanel extends JPanel implements MouseListener, MouseMotionListener, ComponentListener, ActionListener {
 
 	/** Auto-generated serial ID. */
 	private static final long serialVersionUID = 3728396685715564240L;
@@ -71,6 +73,9 @@ public class GridPanel extends JPanel implements MouseListener, ComponentListene
 
 	/** The current y location of the robot (in grid coordinates). */
 	private int robotY;
+	
+	/** The current brush used to draw the tiles. */
+	private int currentBrush;
 
 	/** The various types of cells for the grid. */
 	public static class GridCellType {
@@ -112,6 +117,7 @@ public class GridPanel extends JPanel implements MouseListener, ComponentListene
 		super();
 
 		this.addMouseListener(this);
+		this.addMouseMotionListener(this);
 		this.addComponentListener(this);
 		this.setDoubleBuffered(true);
 
@@ -127,10 +133,40 @@ public class GridPanel extends JPanel implements MouseListener, ComponentListene
 		robotX = 0;
 		robotY = 0;
 
+		currentBrush = 0;
+
 		tmrRobot = new Timer(1000, this);
 		tmrRobot.stop();
 	}
+	
+	/**
+	 * Increment the brush, looping if necessary.
+	 */
+	public void incrementBrush() {
+		currentBrush++;
+		if (currentBrush >= GridCellType.NUM_CELL_TYPES) {
+			currentBrush = 0;
+		}
+	}
+	
+	/**
+	 * Decrement the brush, looping if necessary.
+	 */
+	public void decrementBrush() {
+		currentBrush--;
+		if (currentBrush < 0) {
+			currentBrush = GridCellType.NUM_CELL_TYPES - 1;
+		}
+	}
 
+	/**
+	 * Get the current brush color.
+	 * @return	The current brush color.
+	 */
+	public Color getBrushColor() {
+		return GridCellType.colors[currentBrush];
+	}
+	
 	/**
 	 * Toggle the robot, enabled/disabled motion.
 	 */
@@ -345,16 +381,22 @@ public class GridPanel extends JPanel implements MouseListener, ComponentListene
 	public void mousePressed(MouseEvent e) { }
 
 	@Override
-	public void mouseReleased(MouseEvent e) {
-		if (e.getButton() == MouseEvent.BUTTON3) {
+	public void mouseReleased(MouseEvent e) { }
+
+	@Override
+	public void mouseEntered(MouseEvent e) { }
+
+	@Override
+	public void mouseExited(MouseEvent e) { }
+
+	@Override
+	public void mouseDragged(MouseEvent e) {
+		if (SwingUtilities.isLeftMouseButton(e)) {
 			int i = (int)(e.getX() / this.stepX);
 			int j = (int)(e.getY() / this.stepY);
 
 			try {
-				grid[i][j]++;
-				if (grid[i][j] >= GridCellType.NUM_CELL_TYPES) {
-					grid[i][j] = 0;
-				}
+				grid[i][j] = currentBrush;
 			} catch (ArrayIndexOutOfBoundsException err) { }
 
 			repaint();
@@ -362,10 +404,7 @@ public class GridPanel extends JPanel implements MouseListener, ComponentListene
 	}
 
 	@Override
-	public void mouseEntered(MouseEvent e) { }
-
-	@Override
-	public void mouseExited(MouseEvent e) { }
+	public void mouseMoved(MouseEvent e) { }
 
 	@Override
 	public void componentResized(ComponentEvent e) {

@@ -526,15 +526,15 @@ public class GridMarkov {
 			}
 
 			// Save the rewards.
-			for (int s = 0; s < n; s++) {
-				for (int a = 0; a < m; a++) {
+			for (int a = 0; a < m; a++) {
+				for (int s = 0; s < n; s++) {
 					fileWriter.write(Double.toString(R[s]));
-					if (a != m - 1) {
+					if (s != n - 1) {
 						fileWriter.write(",");
 					}
 				}
 				
-				if (s != n - 1) {
+				if (a != m - 1) {
 					fileWriter.write("\n");
 				}
 			}
@@ -571,10 +571,10 @@ public class GridMarkov {
 
 			// Save the observation transitions.
 			for (int a = 0; a < m; a++) {
-				for (int sp = 0; sp < n; sp++) {
-					for (int o = 0; o < z; o++) {
+				for (int o = 0; o < z; o++) {
+					for (int sp = 0; sp < n; sp++) {
 						fileWriter.write(Double.toString(O[a][sp][o]));
-						if (o != z - 1) {
+						if (sp != n - 1) {
 							fileWriter.write(",");
 						}
 					}
@@ -584,10 +584,10 @@ public class GridMarkov {
 			}
 
 			// Save the rewards.
-			for (int s = 0; s < n; s++) {
-				for (int a = 0; a < m; a++) {
+			for (int a = 0; a < m; a++) {
+				for (int s = 0; s < n; s++) {
 					fileWriter.write(Double.toString(R[s]));
-					if (a != m - 1) {
+					if (s != n - 1) {
 						fileWriter.write(",");
 					}
 				}
@@ -595,7 +595,7 @@ public class GridMarkov {
 				fileWriter.write("\n");
 			}
 
-			// Save the rewards.
+			// Save the belief points.
 			for (int i = 0; i < r; i++) {
 				for (int s = 0; s < n; s++) {
 					fileWriter.write(Double.toString(B[i][s]));

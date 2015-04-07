@@ -32,6 +32,11 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.awt.event.MouseWheelEvent;
+import java.awt.event.MouseWheelListener;
+
 import javax.swing.JPanel;
 import javax.swing.border.TitledBorder;
 import javax.swing.GroupLayout;
@@ -46,13 +51,16 @@ import javax.swing.JButton;
 import javax.swing.JSlider;
 
 
-public class GridWorld implements ActionListener, ChangeListener, KeyListener {
+public class GridWorld implements ActionListener, ChangeListener, KeyListener, MouseWheelListener {
 
 	/** The main frame (window). */
 	private JFrame fraMain;
 	
 	/** The panel for rendering the grid world. */
 	private GridPanel pnlGrid;
+	
+	/** The panel color to tell the user which brush he/she is using. */
+	private JPanel pnlBrush;
 
 	/** The spinner for changing the width of the grid world. */
 	private JSpinner sprWidth;
@@ -144,6 +152,11 @@ public class GridWorld implements ActionListener, ChangeListener, KeyListener {
 		sprHeight.addChangeListener(this);
 		sprHeight.addKeyListener(this);
 
+		pnlBrush = new JPanel();
+		pnlBrush.setToolTipText("The brush which will be drawn when you left-click in the grid. Use the scroll wheel to change this.");
+		pnlBrush.addMouseWheelListener(this);
+		pnlBrush.setSize(160, 100);
+
 		btnSaveGridWorld = new JButton("Save Grid World");
 		btnSaveGridWorld.setToolTipText("Save the current grid world to a file to load later.");
 		btnSaveGridWorld.addActionListener(this);
@@ -195,8 +208,9 @@ public class GridWorld implements ActionListener, ChangeListener, KeyListener {
 							.addGroup(gl_pnlControl.createParallelGroup(Alignment.TRAILING)
 								.addComponent(sprWidth, GroupLayout.DEFAULT_SIZE, 90, Short.MAX_VALUE)
 								.addComponent(sprHeight, GroupLayout.DEFAULT_SIZE, 90, Short.MAX_VALUE)))
+						.addComponent(pnlBrush, GroupLayout.DEFAULT_SIZE, 160, Short.MAX_VALUE)
 						.addComponent(btnSaveGridWorld, GroupLayout.DEFAULT_SIZE, 160, Short.MAX_VALUE)
-						.addComponent(btnLoadGridWorld, GroupLayout.DEFAULT_SIZE, 154, Short.MAX_VALUE)
+						.addComponent(btnLoadGridWorld, GroupLayout.DEFAULT_SIZE, 160, Short.MAX_VALUE)
 						.addComponent(btnExportRawMDP, GroupLayout.DEFAULT_SIZE, 160, Short.MAX_VALUE)
 						.addGroup(Alignment.TRAILING, gl_pnlControl.createSequentialGroup()
 							.addComponent(btnImportMDPPolicy, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
@@ -207,7 +221,7 @@ public class GridWorld implements ActionListener, ChangeListener, KeyListener {
 							.addGap(1))
 						.addGroup(Alignment.TRAILING, gl_pnlControl.createSequentialGroup()
 							.addGap(1)
-							.addComponent(btnPlayPause, GroupLayout.DEFAULT_SIZE, 159, Short.MAX_VALUE))
+							.addComponent(btnPlayPause, GroupLayout.DEFAULT_SIZE, 160, Short.MAX_VALUE))
 						.addGroup(gl_pnlControl.createSequentialGroup()
 							.addContainerGap()
 							.addComponent(lblSpeed)
@@ -226,6 +240,8 @@ public class GridWorld implements ActionListener, ChangeListener, KeyListener {
 					.addGroup(gl_pnlControl.createParallelGroup(Alignment.BASELINE)
 						.addComponent(lblHeight)
 						.addComponent(sprHeight, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+					.addPreferredGap(ComponentPlacement.RELATED)
+					.addComponent(pnlBrush)
 					.addPreferredGap(ComponentPlacement.RELATED)
 					.addComponent(btnSaveGridWorld)
 					.addPreferredGap(ComponentPlacement.RELATED)
@@ -338,5 +354,18 @@ public class GridWorld implements ActionListener, ChangeListener, KeyListener {
 
 	@Override
 	public void keyReleased(KeyEvent e) { }
+
+	@Override
+	public void mouseWheelMoved(MouseWheelEvent e) {
+		if (e.getSource() == pnlBrush) {
+			if (e.getWheelRotation() > 0) {
+				pnlGrid.incrementBrush();
+			} else {
+				pnlGrid.decrementBrush();
+			}
+			pnlBrush.setBackground(pnlGrid.getBrushColor());
+			pnlBrush.repaint();
+		}
+	}
 
 }
