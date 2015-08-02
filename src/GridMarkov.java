@@ -504,19 +504,83 @@ public class GridMarkov {
 		}
 	}
 	
+	private int computeMaxSuccessors() {
+		int ns = 0;
+		
+		for (int s = 0; s < n; s++) {
+			for (int a = 0; a < m; a++) {
+				int sans = 0;
+				for (int sp = 0; sp < n; sp++) {
+					if (T[s][a][sp] > 0.0) {
+						sans++;
+					}
+				}
+				
+				if (sans > ns) {
+					ns = sans;
+				}
+			}
+		}
+		
+		return ns;
+	}
+	
 	public boolean saveMDP(File file) {
+		// Determine the maximum number of successors.
+		int ns = computeMaxSuccessors();
+		
 		try {
 			FileWriter fileWriter = new FileWriter(file);
 
-			// Write the first line ("header") for the raw MDP file: <n, m, k, s0, h, g>.
-			fileWriter.write(Integer.toString(n) + "," + Integer.toString(m) + ",1," + s0 + "," + horizon + "," + gamma + "\n");
+			// Write the first line ("header") for the raw MDP file: <n, ns, m, k, s0, h, g>.
+			fileWriter.write(Integer.toString(n) + "," + Integer.toString(ns) + "," + Integer.toString(m) + ",1," + s0 + "," + horizon + "," + gamma + "\n");
+
+			// Save the successor states.
+			for (int a = 0; a < m; a++) {
+				for (int s = 0; s < n; s++) {
+					int sans = 0;
+					for (int sp = 0; sp < n; sp++) {
+						if (T[s][a][sp] > 0.0) {
+							fileWriter.write(Integer.toString(sp));
+							if (sans != ns - 1) {
+								fileWriter.write(",");
+							}
+							sans++;
+						}
+					}
+
+					// Finish up the remaining ones with "-1".
+					for (int i = sans; i < ns; i++) {
+						fileWriter.write("-1");
+
+						if (i != ns - 1) {
+							fileWriter.write(",");
+						}
+					}
+
+					fileWriter.write("\n");
+				}
+			}
 
 			// Save the state transitions.
 			for (int a = 0; a < m; a++) {
 				for (int s = 0; s < n; s++) {
+					int sans = 0;
 					for (int sp = 0; sp < n; sp++) {
-						fileWriter.write(Double.toString(T[s][a][sp]));
-						if (sp != n - 1) {
+						if (T[s][a][sp] > 0.0) {
+							fileWriter.write(Double.toString(T[s][a][sp]));
+							if (sans != ns - 1) {
+								fileWriter.write(",");
+							}
+							sans++;
+						}
+					}
+
+					// Finish up the remaining ones with a "0.0".
+					for (int i = sans; i < ns; i++) {
+						fileWriter.write("0.0");
+
+						if (i != ns - 1) {
 							fileWriter.write(",");
 						}
 					}
@@ -548,19 +612,82 @@ public class GridMarkov {
 		return true;
 	}
 	
+	private int computeMaxNonZeroBeliefs() {
+		int rz = 0;
+
+		for (int i = 0; i < r; i++) {
+			int ri = 0;
+			for (int s = 0; s < n; s++) {
+				if (B[i][s] > 0.0) {
+					ri++;
+				}
+			}
+			
+			if (ri > rz) {
+				rz = ri;
+			}
+		}
+		
+		return rz;
+	}
+	
 	public boolean savePOMDP(File file) {
+		// Determine the maximum number of successors, as well as the maximum number of non-zero belief points.
+		int ns = computeMaxSuccessors();
+		int rz = computeMaxNonZeroBeliefs();
+		
 		try {
 			FileWriter fileWriter = new FileWriter(file);
 
-			// Write the first line ("header") for the raw POMDP file: <n, m, z, r, k, h, g>.
-			fileWriter.write(Integer.toString(n) + "," + Integer.toString(m) + "," + Integer.toString(z) + "," + Integer.toString(r) + ",1," + horizon + "," + gamma + "\n");
+			// Write the first line ("header") for the raw POMDP file: <n, ns, m, z, r, rz, k, h, g>.
+			fileWriter.write(Integer.toString(n) + "," + Integer.toString(ns) + "," + Integer.toString(m) + "," + Integer.toString(z) + "," + Integer.toString(r) + "," + Integer.toString(rz) + ",1," + horizon + "," + gamma + "\n");
+
+			// Save the successor states.
+			for (int a = 0; a < m; a++) {
+				for (int s = 0; s < n; s++) {
+					int sans = 0;
+					for (int sp = 0; sp < n; sp++) {
+						if (T[s][a][sp] > 0.0) {
+							fileWriter.write(Integer.toString(sp));
+							if (sans != ns - 1) {
+								fileWriter.write(",");
+							}
+							sans++;
+						}
+					}
+
+					// Finish up the remaining ones with "-1".
+					for (int i = sans; i < ns; i++) {
+						fileWriter.write("-1");
+
+						if (i != ns - 1) {
+							fileWriter.write(",");
+						}
+					}
+
+					fileWriter.write("\n");
+				}
+			}
 
 			// Save the state transitions.
 			for (int a = 0; a < m; a++) {
 				for (int s = 0; s < n; s++) {
+					int sans = 0;
 					for (int sp = 0; sp < n; sp++) {
-						fileWriter.write(Double.toString(T[s][a][sp]));
-						if (sp != n - 1) {
+						if (T[s][a][sp] > 0.0) {
+							fileWriter.write(Double.toString(T[s][a][sp]));
+							if (sans != ns - 1) {
+								fileWriter.write(",");
+							}
+							sans++;
+						}
+					}
+
+					// Finish up the remaining ones with a "0.0".
+					for (int i = sans; i < ns; i++) {
+						fileWriter.write("0.0");
+
+						if (i != ns - 1) {
 							fileWriter.write(",");
 						}
 					}
@@ -595,15 +722,53 @@ public class GridMarkov {
 				fileWriter.write("\n");
 			}
 
-			// Save the belief points.
+			// Save the non-zero belief point states.
 			for (int i = 0; i < r; i++) {
+				int ri = 0;
 				for (int s = 0; s < n; s++) {
-					fileWriter.write(Double.toString(B[i][s]));
-					if (s != n - 1) {
+					if (B[i][s] > 0.0) {
+						fileWriter.write(Integer.toString(s));
+						if (ri != rz - 1) {
+							fileWriter.write(",");
+						}
+						ri++;
+					}
+				}
+
+				// Finish up the remaining ones with "-1".
+				for (int j = ri; j < rz; j++) {
+					fileWriter.write("-1");
+
+					if (j != rz - 1) {
 						fileWriter.write(",");
 					}
 				}
-				
+
+				fileWriter.write("\n");
+			}
+
+			// Save the belief points.
+			for (int i = 0; i < r; i++) {
+				int ri = 0;
+				for (int s = 0; s < n; s++) {
+					if (B[i][s] > 0.0) {
+						fileWriter.write(Double.toString(B[i][s]));
+						if (ri != rz - 1) {
+							fileWriter.write(",");
+						}
+						ri++;
+					}
+				}
+
+				// Finish up the remaining ones with a "0.0".
+				for (int j = ri; j < rz; j++) {
+					fileWriter.write("0.0");
+
+					if (j != rz - 1) {
+						fileWriter.write(",");
+					}
+				}
+
 				if (i != r - 1) {
 					fileWriter.write("\n");
 				}
