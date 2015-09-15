@@ -56,9 +56,22 @@ public class GridMarkov {
 	private static final double FAILURE_REWARD = -1.0;
 	private static final double DEAD_END_REWARD = -1.0;
 	private static final double TERMINAL_STATE_REWARD = 0.0;
-	private static final double LIGHT_REWARD = -0.03;
-	
+	private static final double LIGHT_REWARD = EMPTY_REWARD;
+	private static final double INITIAL_REWARD = EMPTY_REWARD;
+
+	private static final double EMPTY_COST = 1.0;
+	private static final double OBSTACLE_COST = 0.0;
+	private static final double SUCCESS_COST = 0.0;
+	private static final double FAILURE_COST = 100.0;
+	private static final double DEAD_END_COST = 100.0;
+	private static final double TERMINAL_STATE_COST = 0.0;
+	private static final double LIGHT_COST = EMPTY_COST;
+	private static final double INITIAL_COST = EMPTY_COST;
+
 	private int s0 = -1;
+	private int ng = -1;
+	private int goals[] = null;
+	
 	private int r;
 	private double B[][] = null;
 	private static final double CELL_AND_NEIGHBOR_PROBABILITY = 0.75;
@@ -85,12 +98,26 @@ public class GridMarkov {
 	}
 
 	/**
+	 * Quick helper function to check if a cell is "empty perhaps with special properties."
+	 * @param	cellType	The type of the cell.
+	 * @return	True or false.
+	 */
+	private boolean is_cell_emptyish(int cellType) {
+		if (cellType == GridPanel.GridCellType.EMPTY || cellType == GridPanel.GridCellType.LIGHT || cellType == GridPanel.GridCellType.INITIAL) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+	
+	/**
 	 * Create the internal (PO)MDP variables.
 	 * @param 	grid	The x-by-y grid, meaning stored 0 1 2; 3 4 5; 6 7 8; etc.
 	 * @param 	w		The width of the grid.
 	 * @param 	h		The height of the grid.
+	 * @param	ssp		Make the SSP version with costs or not.
 	 */
-	public void create(int grid[][], int w, int h) {
+	public void create(int grid[][], int w, int h, boolean ssp) {
 		// Create the states (left to right, then top to bottom). Absorbing is the final one.
 		n = w * h + 1; // Always create an absorbing goal state.
 		terminalState = w * h;
@@ -387,24 +414,58 @@ public class GridMarkov {
 		for (int y = 0; y < h; y++) {
 			for (int x = 0; x < w; x++) {
 				if (grid[x][y] == GridPanel.GridCellType.EMPTY) {
-					R[s] = EMPTY_REWARD;
+					if (ssp) {
+						R[s] = EMPTY_COST;
+					} else {
+						R[s] = EMPTY_REWARD;
+					}
 				} else if (grid[x][y] == GridPanel.GridCellType.OBSTACLE) {
-					R[s] = OBSTACLE_REWARD;
+					if (ssp) {
+						R[s] = OBSTACLE_COST;
+					} else {
+						R[s] = OBSTACLE_REWARD;
+					}
 				} else if (grid[x][y] == GridPanel.GridCellType.SUCCESS) {
-					R[s] = SUCCESS_REWARD;
+					if (ssp) {
+						R[s] = SUCCESS_COST;
+					} else {
+						R[s] = SUCCESS_REWARD;
+					}
 				} else if (grid[x][y] == GridPanel.GridCellType.FAILURE) {
-					R[s] = FAILURE_REWARD;
+					if (ssp) {
+						R[s] = FAILURE_COST;
+					} else {
+						R[s] = FAILURE_REWARD;
+					}
 				} else if (grid[x][y] == GridPanel.GridCellType.DEAD_END) {
-					R[s] = DEAD_END_REWARD;
+					if (ssp) {
+						R[s] = DEAD_END_COST;
+					} else {
+						R[s] = DEAD_END_REWARD;
+					}
 				} else if (grid[x][y] == GridPanel.GridCellType.LIGHT) {
-					R[s] = LIGHT_REWARD;
+					if (ssp) {
+						R[s] = LIGHT_COST;
+					} else {
+						R[s] = LIGHT_REWARD;
+					}
+				} else if (grid[x][y] == GridPanel.GridCellType.INITIAL) {
+					if (ssp) {
+						R[s] = INITIAL_COST;
+					} else {
+						R[s] = INITIAL_REWARD;
+					}
 				}
 				s++;
 			}
 		}
 
 		// The terminal state has it's own reward (of zero).
-		R[terminalState] = TERMINAL_STATE_REWARD;
+		if (ssp) {
+			R[terminalState] = TERMINAL_STATE_COST;
+		} else {
+			R[terminalState] = TERMINAL_STATE_REWARD;
+		}
 
 		// To define the set of beliefs, we must first compute the number of belief points. These belief points
 		// come in a few varieties: (1) collapsed belief points over each non-obstacle state, and (2) distributed
@@ -419,7 +480,7 @@ public class GridMarkov {
 				}
 				
 				// For (2).
-				if (grid[x][y] == GridPanel.GridCellType.EMPTY || grid[x][y] == GridPanel.GridCellType.LIGHT) {
+				if (is_cell_emptyish(grid[x][y])) {
 					r++;
 				}
 				
@@ -465,19 +526,19 @@ public class GridMarkov {
 		// Actually create (2).
 		for (int y = 0; y < h; y++) {
 			for (int x = 0; x < w; x++) {
-				if (grid[x][y] == GridPanel.GridCellType.EMPTY || grid[x][y] == GridPanel.GridCellType.LIGHT) {
+				if (is_cell_emptyish(grid[x][y])) {
 					// First count the neighbors that are valid.
 					int numNeighbors = 0;
-					if (x > 0 && (grid[x - 1][y] == GridPanel.GridCellType.EMPTY || grid[x - 1][y] == GridPanel.GridCellType.LIGHT)) {
+					if (x > 0 && is_cell_emptyish(grid[x - 1][y])) {
 						numNeighbors++;
 					}
-					if (y > 0 && (grid[x][y - 1] == GridPanel.GridCellType.EMPTY || grid[x][y - 1] == GridPanel.GridCellType.LIGHT)) {
+					if (y > 0 && is_cell_emptyish(grid[x][y - 1])) {
 						numNeighbors++;
 					}
-					if (x < w - 1 && (grid[x + 1][y] == GridPanel.GridCellType.EMPTY || grid[x + 1][y] == GridPanel.GridCellType.LIGHT)) {
+					if (x < w - 1 && is_cell_emptyish(grid[x + 1][y])) {
 						numNeighbors++;
 					}
-					if (y < h - 1 && (grid[x][y + 1] == GridPanel.GridCellType.EMPTY || grid[x][y + 1] == GridPanel.GridCellType.LIGHT)) {
+					if (y < h - 1 && is_cell_emptyish(grid[x][y + 1])) {
 						numNeighbors++;
 					}
 					
@@ -485,16 +546,16 @@ public class GridMarkov {
 					B[i][y * w + x] = CELL_AND_NEIGHBOR_PROBABILITY; 
 					
 					// Now actually assign the probabilities for the neighbors.
-					if (x > 0 && (grid[x - 1][y] == GridPanel.GridCellType.EMPTY || grid[x - 1][y] == GridPanel.GridCellType.LIGHT)) {
+					if (x > 0 && is_cell_emptyish(grid[x - 1][y])) {
 						B[i][y * w + (x - 1)] = (1.0 - CELL_AND_NEIGHBOR_PROBABILITY) / (double)numNeighbors;
 					}
-					if (y > 0 && (grid[x][y - 1] == GridPanel.GridCellType.EMPTY || grid[x][y - 1] == GridPanel.GridCellType.LIGHT)) {
+					if (y > 0 && is_cell_emptyish(grid[x][y - 1])) {
 						B[i][(y - 1) * w + x] = (1.0 - CELL_AND_NEIGHBOR_PROBABILITY) / (double)numNeighbors;
 					}
-					if (x < w - 1 && (grid[x + 1][y] == GridPanel.GridCellType.EMPTY || grid[x + 1][y] == GridPanel.GridCellType.LIGHT)) {
+					if (x < w - 1 && is_cell_emptyish(grid[x + 1][y])) {
 						B[i][y * w + (x + 1)] = (1.0 - CELL_AND_NEIGHBOR_PROBABILITY) / (double)numNeighbors;
 					}
-					if (y < h - 1 && (grid[x][y + 1] == GridPanel.GridCellType.EMPTY || grid[x][y + 1] == GridPanel.GridCellType.LIGHT)) {
+					if (y < h - 1 && is_cell_emptyish(grid[x][y + 1])) {
 						B[i][(y + 1) * w + x] = (1.0 - CELL_AND_NEIGHBOR_PROBABILITY) / (double)numNeighbors;
 					}
 					
@@ -502,6 +563,28 @@ public class GridMarkov {
 				}
 			}
 		}
+		
+		// Assign the initial true state and thus belief state.
+		s = 0;
+		for (int y = 0; y < h; y++) {
+			for (int x = 0; x < w; x++) {
+				if (grid[x][y] == GridPanel.GridCellType.INITIAL) {
+					s0 = s;
+					break;
+				}
+				
+				s++;
+			}
+			
+			if (s0 >= 0) {
+				break;
+			}
+		}
+		
+		// Assign the goal state.
+		ng = 1;
+		goals = new int[ng];
+		goals[0] = terminalState;
 	}
 	
 	private int computeMaxSuccessors() {
@@ -532,8 +615,17 @@ public class GridMarkov {
 		try {
 			FileWriter fileWriter = new FileWriter(file);
 
-			// Write the first line ("header") for the raw MDP file: <n, ns, m, k, s0, h, g>.
-			fileWriter.write(Integer.toString(n) + "," + Integer.toString(ns) + "," + Integer.toString(m) + ",1," + s0 + "," + horizon + "," + gamma + "\n");
+			// Write the first line ("header") for the raw MDP file: <n, ns, m, k, s0, ng, h, g>.
+			fileWriter.write(Integer.toString(n) + "," + Integer.toString(ns) + "," + Integer.toString(m) + ",1," + Integer.toString(s0) + "," + Integer.toString(ng) + "," + Integer.toString(horizon) + "," + Double.toString(gamma) + "\n");
+
+			// Save the goal states.
+			for (int i = 0; i < ng; i++) {
+				fileWriter.write(Integer.toString(goals[i]));
+				if (i != ng - 1) {
+					fileWriter.write(",");
+				}
+			}
+			fileWriter.write("\n");
 
 			// Save the successor states.
 			for (int a = 0; a < m; a++) {
@@ -639,8 +731,8 @@ public class GridMarkov {
 		try {
 			FileWriter fileWriter = new FileWriter(file);
 
-			// Write the first line ("header") for the raw POMDP file: <n, ns, m, z, r, rz, k, h, g>.
-			fileWriter.write(Integer.toString(n) + "," + Integer.toString(ns) + "," + Integer.toString(m) + "," + Integer.toString(z) + "," + Integer.toString(r) + "," + Integer.toString(rz) + ",1," + horizon + "," + gamma + "\n");
+			// Write the first line ("header") for the raw POMDP file: <n, ns, m, z, r, rz, k, s0, h, g>.
+			fileWriter.write(Integer.toString(n) + "," + Integer.toString(ns) + "," + Integer.toString(m) + "," + Integer.toString(z) + "," + Integer.toString(r) + "," + Integer.toString(rz) + ",1," + Integer.toString(s0) + "," + Integer.toString(horizon) + "," + Double.toString(gamma) + "\n");
 
 			// Save the successor states.
 			for (int a = 0; a < m; a++) {

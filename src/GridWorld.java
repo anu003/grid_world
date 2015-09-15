@@ -36,6 +36,7 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
+import java.io.File;
 
 import javax.swing.JPanel;
 import javax.swing.border.TitledBorder;
@@ -61,13 +62,16 @@ public class GridWorld implements ActionListener, ChangeListener, KeyListener, M
 	
 	/** The panel color to tell the user which brush he/she is using. */
 	private JPanel pnlBrush;
-
+	
+	/** The human-readable meaning of the brush color. */
+	private JLabel labBrush;
+	
 	/** The spinner for changing the width of the grid world. */
 	private JSpinner sprWidth;
 	
 	/** The spinner for changing the height of the grid world. */
 	private JSpinner sprHeight;
-
+	
 	/** The button for saving a grid world file. */
 	private JButton btnSaveGridWorld;
 	
@@ -77,8 +81,11 @@ public class GridWorld implements ActionListener, ChangeListener, KeyListener, M
 	/** The button for exporting a raw MDP file. */
 	private JButton btnExportRawMDP;
 	
+	/** The button for exporting a raw SSP file. */
+	private JButton btnExportRawSSP;
+	
 	/** The button for importing an MDP policy file. */
-	private JButton btnImportMDPPolicy;
+	private JButton btnImportMDPSSPPolicy;
 	
 	/** The button for exporting a raw POMDP file. */
 	private JButton btnExportRawPOMDP;
@@ -98,6 +105,11 @@ public class GridWorld implements ActionListener, ChangeListener, KeyListener, M
 	 * the listener functions like actionPerformed, etc.
 	 */
 	private boolean locked = false;
+	
+	/**
+	 * The currently opened file. The file type will change based on what you do.
+	 */
+	private File currentFile = null;
 
 	/**
 	 * Launch the application.
@@ -156,6 +168,8 @@ public class GridWorld implements ActionListener, ChangeListener, KeyListener, M
 		pnlBrush.setToolTipText("The brush which will be drawn when you left-click in the grid. Use the scroll wheel to change this.");
 		pnlBrush.addMouseWheelListener(this);
 		pnlBrush.setSize(160, 100);
+		
+		labBrush = new JLabel("Undefined");
 
 		btnSaveGridWorld = new JButton("Save Grid World");
 		btnSaveGridWorld.setToolTipText("Save the current grid world to a file to load later.");
@@ -169,9 +183,13 @@ public class GridWorld implements ActionListener, ChangeListener, KeyListener, M
 		btnExportRawMDP.setToolTipText("Export the underlying MDP as a raw text file, with state transitions and rewards, for use by a planner.");
 		btnExportRawMDP.addActionListener(this);
 
-		btnImportMDPPolicy = new JButton("Import MDP Policy");
-		btnImportMDPPolicy.setToolTipText("Import a policy from a file which was solved using an exported raw MDP file.");
-		btnImportMDPPolicy.addActionListener(this);
+		btnExportRawSSP = new JButton("Export Raw SSP");
+		btnExportRawSSP.setToolTipText("Export the underlying SSP as a raw text file, with state transitions and costs, for use by a planner.");
+		btnExportRawSSP.addActionListener(this);
+
+		btnImportMDPSSPPolicy = new JButton("Import MDP/SSP Policy");
+		btnImportMDPSSPPolicy.setToolTipText("Import a policy from a file which was solved using an exported raw MDP/SSP file.");
+		btnImportMDPSSPPolicy.addActionListener(this);
 
 		btnExportRawPOMDP = new JButton("Export Raw POMDP");
 		btnExportRawPOMDP.setToolTipText("Export the underlying POMDP as a raw text file, with state transitions, observation transitions, and rewards, for use by a planner.");
@@ -208,12 +226,14 @@ public class GridWorld implements ActionListener, ChangeListener, KeyListener, M
 							.addGroup(gl_pnlControl.createParallelGroup(Alignment.TRAILING)
 								.addComponent(sprWidth, GroupLayout.DEFAULT_SIZE, 90, Short.MAX_VALUE)
 								.addComponent(sprHeight, GroupLayout.DEFAULT_SIZE, 90, Short.MAX_VALUE)))
+						.addComponent(labBrush, GroupLayout.DEFAULT_SIZE, 160, Short.MAX_VALUE)
 						.addComponent(pnlBrush, GroupLayout.DEFAULT_SIZE, 160, Short.MAX_VALUE)
 						.addComponent(btnSaveGridWorld, GroupLayout.DEFAULT_SIZE, 160, Short.MAX_VALUE)
 						.addComponent(btnLoadGridWorld, GroupLayout.DEFAULT_SIZE, 160, Short.MAX_VALUE)
 						.addComponent(btnExportRawMDP, GroupLayout.DEFAULT_SIZE, 160, Short.MAX_VALUE)
+						.addComponent(btnExportRawSSP, GroupLayout.DEFAULT_SIZE, 160, Short.MAX_VALUE)
 						.addGroup(Alignment.TRAILING, gl_pnlControl.createSequentialGroup()
-							.addComponent(btnImportMDPPolicy, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+							.addComponent(btnImportMDPSSPPolicy, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
 							.addGap(1))
 						.addComponent(btnExportRawPOMDP, GroupLayout.DEFAULT_SIZE, 160, Short.MAX_VALUE)
 						.addGroup(Alignment.TRAILING, gl_pnlControl.createSequentialGroup()
@@ -241,6 +261,8 @@ public class GridWorld implements ActionListener, ChangeListener, KeyListener, M
 						.addComponent(lblHeight)
 						.addComponent(sprHeight, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
 					.addPreferredGap(ComponentPlacement.RELATED)
+					.addComponent(labBrush)
+					.addPreferredGap(ComponentPlacement.RELATED)
 					.addComponent(pnlBrush)
 					.addPreferredGap(ComponentPlacement.RELATED)
 					.addComponent(btnSaveGridWorld)
@@ -249,7 +271,9 @@ public class GridWorld implements ActionListener, ChangeListener, KeyListener, M
 					.addPreferredGap(ComponentPlacement.RELATED)
 					.addComponent(btnExportRawMDP)
 					.addPreferredGap(ComponentPlacement.RELATED)
-					.addComponent(btnImportMDPPolicy)
+					.addComponent(btnExportRawSSP)
+					.addPreferredGap(ComponentPlacement.RELATED)
+					.addComponent(btnImportMDPSSPPolicy)
 					.addPreferredGap(ComponentPlacement.RELATED)
 					.addComponent(btnExportRawPOMDP)
 					.addPreferredGap(ComponentPlacement.RELATED)
@@ -284,14 +308,25 @@ public class GridWorld implements ActionListener, ChangeListener, KeyListener, M
 	public void actionPerformed(ActionEvent e) {
 		if (e.getSource() == btnSaveGridWorld) {
 			final JFileChooser fc = new JFileChooser();
+			try {
+				fc.setSelectedFile(new File(currentFile.getAbsolutePath().substring(0, currentFile.getAbsolutePath().lastIndexOf('.')) + ".gw"));
+			} catch (Exception ex) { }
+			
 			if (fc.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
-				pnlGrid.saveGrid(fc.getSelectedFile());
+				currentFile = fc.getSelectedFile();
+				pnlGrid.saveGrid(currentFile);
 			}
 		} else if (e.getSource() == btnLoadGridWorld) {
 			final JFileChooser fc = new JFileChooser();
+			try {
+				fc.setSelectedFile(new File(currentFile.getAbsolutePath().substring(0, currentFile.getAbsolutePath().lastIndexOf('.')) + ".gw"));
+			} catch (Exception ex) { }
+			
 			if (fc.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
 				// Load, and upon success, set the width and height of the spinners.
-				boolean success = pnlGrid.loadGrid(fc.getSelectedFile());
+				currentFile = fc.getSelectedFile();
+				boolean success = pnlGrid.loadGrid(currentFile);
+				
 				if (success) {
 					locked = true;
 					sprWidth.setValue((int)pnlGrid.getGridWidth());
@@ -301,19 +336,44 @@ public class GridWorld implements ActionListener, ChangeListener, KeyListener, M
 			}
 		} else if (e.getSource() == btnExportRawMDP) {
 			GridMarkov mdp = new GridMarkov();
-			mdp.create(pnlGrid.getGrid(), pnlGrid.getGridWidth(), pnlGrid.getGridHeight());
+			mdp.create(pnlGrid.getGrid(), pnlGrid.getGridWidth(), pnlGrid.getGridHeight(), false);
+			
 			final JFileChooser fc = new JFileChooser();
+			try {
+				fc.setSelectedFile(new File(currentFile.getAbsolutePath().substring(0, currentFile.getAbsolutePath().lastIndexOf('.')) + ".raw"));
+			} catch (Exception ex) { }
+			
 			if (fc.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
-				mdp.saveMDP(fc.getSelectedFile());
+				currentFile = fc.getSelectedFile();
+				mdp.saveMDP(currentFile);
 			}
-		} else if (e.getSource() == btnImportMDPPolicy) {
+		} else if (e.getSource() == btnExportRawSSP) {
+			GridMarkov mdp = new GridMarkov();
+			mdp.create(pnlGrid.getGrid(), pnlGrid.getGridWidth(), pnlGrid.getGridHeight(), true);
+			
+			final JFileChooser fc = new JFileChooser();
+			try {
+				fc.setSelectedFile(new File(currentFile.getAbsolutePath().substring(0, currentFile.getAbsolutePath().lastIndexOf('.')) + ".raw"));
+			} catch (Exception ex) { }
+			
+			if (fc.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
+				currentFile = fc.getSelectedFile();
+				mdp.saveMDP(currentFile);
+			}
+		} else if (e.getSource() == btnImportMDPSSPPolicy) {
 
 		} else if (e.getSource() == btnExportRawPOMDP) {
 			GridMarkov pomdp = new GridMarkov();
-			pomdp.create(pnlGrid.getGrid(), pnlGrid.getGridWidth(), pnlGrid.getGridHeight());
+			pomdp.create(pnlGrid.getGrid(), pnlGrid.getGridWidth(), pnlGrid.getGridHeight(), false);
+			
 			final JFileChooser fc = new JFileChooser();
+			try {
+				fc.setSelectedFile(new File(currentFile.getAbsolutePath().substring(0, currentFile.getAbsolutePath().lastIndexOf('.')) + ".raw"));
+			} catch (Exception ex) { }
+			
 			if (fc.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
-				pomdp.savePOMDP(fc.getSelectedFile());
+				currentFile = fc.getSelectedFile();
+				pomdp.savePOMDP(currentFile);
 			}
 		} else if (e.getSource() == btnImportPOMDPPolicy) {
 
@@ -365,6 +425,8 @@ public class GridWorld implements ActionListener, ChangeListener, KeyListener, M
 			}
 			pnlBrush.setBackground(pnlGrid.getBrushColor());
 			pnlBrush.repaint();
+			
+			labBrush.setText("Brush: " + pnlGrid.getBrushName());
 		}
 	}
 

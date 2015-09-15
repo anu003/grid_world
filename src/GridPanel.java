@@ -85,10 +85,14 @@ public class GridPanel extends JPanel implements MouseListener, MouseMotionListe
 		public final static int FAILURE = 3;
 		public final static int DEAD_END = 4;
 		public final static int LIGHT = 5;
-		public final static int NUM_CELL_TYPES = 6;
+		public final static int INITIAL = 6;
+		public final static int NUM_CELL_TYPES = 7;
 
 		public final static Color colors[] = {
-			Color.white, Color.gray, Color.green, Color.red, Color.black, Color.yellow
+			Color.white, Color.gray, Color.green, Color.red, Color.black, Color.yellow, Color.magenta
+		};
+		public final static String name[] = {
+			"Empty", "Obstacle", "Success", "Failure", "Dead End", "Light", "Initial"
 		};
 	}
 
@@ -165,6 +169,14 @@ public class GridPanel extends JPanel implements MouseListener, MouseMotionListe
 	 */
 	public Color getBrushColor() {
 		return GridCellType.colors[currentBrush];
+	}
+
+	/**
+	 * Get the current brush name.
+	 * @return	The current brush name.
+	 */
+	public String getBrushName() {
+		return GridCellType.name[currentBrush];
 	}
 	
 	/**
